@@ -1,9 +1,11 @@
+import { BillboardClient } from './components/client';
+
 const BillboardsPage = () => {
   return (
     <div className='flex-col'>
       <div className='flex-1 space-y-4 p-8 pt-6'>
         <p>Hello</p>
-        {/* <BillboardClient /> */}
+        <BillboardClient />
       </div>
     </div>
   );
@@ -11,7 +13,6 @@ const BillboardsPage = () => {
 
 export default BillboardsPage;
 
-//? Complete component
 // import { format } from 'date-fns'; // Format dates
 // import connectDB from '@/lib/mongodb';
 // import Billboard from '@/models/Billboard'; // Import Mongoose model

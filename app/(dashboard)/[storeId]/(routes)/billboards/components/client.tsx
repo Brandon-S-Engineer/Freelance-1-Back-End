@@ -1,9 +1,11 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import Heading from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
 import { Plus } from 'lucide-react';
 
-const BillboardClient = () => {
+export const BillboardClient = () => {
   return (
     <>
       <div className='flex items-center justify-between'>
@@ -21,8 +23,6 @@ const BillboardClient = () => {
     </>
   );
 };
-
-export default BillboardClient;
 
 // 'use client';
 
