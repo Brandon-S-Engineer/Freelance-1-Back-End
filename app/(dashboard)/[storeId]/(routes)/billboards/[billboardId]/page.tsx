@@ -1,4 +1,6 @@
 const BillboardPage = async ({ params }: { params: { billboardId: string } }) => {
+  // const billboard =
+
   return <div>This is a form for billboards</div>;
 };
 
