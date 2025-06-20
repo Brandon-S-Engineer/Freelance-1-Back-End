@@ -29,7 +29,7 @@ export const ApiList: React.FC<ApiListProps> = ({ entityName, entityIdName }) =>
       <ApiAlert
         title='GET'
         variant='public'
-        description={`${baseUrl}/${entityName}/${entityIdName}`} //? Endpoint for retrieving a specific entity by ID
+        description={`${baseUrl}/${entityName}/{${entityIdName}}`} //? Endpoint for retrieving a specific entity by ID
       />
 
       <ApiAlert
@@ -41,13 +41,13 @@ export const ApiList: React.FC<ApiListProps> = ({ entityName, entityIdName }) =>
       <ApiAlert
         title='PATCH'
         variant='admin'
-        description={`${baseUrl}/${entityName}`} // Endpoint for updating an existing entity
+        description={`${baseUrl}/{${entityName}}`} // Endpoint for updating an existing entity
       />
 
       <ApiAlert
         title='DELETE'
         variant='admin'
-        description={`${baseUrl}/${entityName}`} // Endpoint for deleting an entity
+        description={`${baseUrl}/{${entityName}}`} // Endpoint for deleting an entity
       />
     </>
   );
