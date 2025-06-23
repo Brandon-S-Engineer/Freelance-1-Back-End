@@ -61,10 +61,10 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ disabled, onChange, onRemove,
       <CldUploadWidget
         onUpload={onUpload}
         uploadPreset='asdqwe'>
-        {/* `open` is destructured from the object passed by CldUploadWidget */}
         {({ open }) => {
-          const onClick = () => {
-            open(); // Open Cloudinary upload widget
+          const handleClick = () => {
+            setTimeout(() => open(), 100); // <-- workaround for Windows bug
+            // open();
           };
 
           return (
@@ -72,7 +72,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ disabled, onChange, onRemove,
               type='button'
               disabled={disabled}
               variant='secondary'
-              onClick={onClick}>
+              onClick={handleClick}>
               <ImagePlus className='h-4 w-4 mr-2' />
               Upload an Image
             </Button>
