@@ -7,21 +7,26 @@ import Navbar from '@/components/navbar';
 export default async function DashboardLayout({ children, params }: { children: React.ReactNode; params: { storeId: string } }) {
   const user = await currentUser();
 
+  // Use process.env.NEXT_PUBLIC_CLERK_SIGNIN_URL if you have a custom path
+  const signInPath = '/sign-in';
+
+  // Get current pathname (server components can't, but you can pass it via props or use a workaround in middleware)
+  // For now, we'll just hardcode a fix for this layout.
   if (!user) {
-    redirect('/sign-in');
+    if (params.storeId !== 'sign-in') {
+      redirect(signInPath);
+    }
   }
 
-  // ✅ Validate storeId before querying to avoid errors
   if (!mongoose.Types.ObjectId.isValid(params.storeId)) {
     redirect('/');
   }
 
   const store = await Store.findOne({
     _id: params.storeId,
-    userId: user.id,
+    userId: user?.id,
   });
 
-  // Redirect to homepage if the store doesn't exist or doesn't belong to the user
   if (!store) {
     redirect('/');
   }
