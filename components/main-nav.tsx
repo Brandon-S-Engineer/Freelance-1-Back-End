@@ -35,16 +35,16 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
       label: 'Colors',
       active: pathname === `/${params.storeId}/colors`,
     },
-    // {
-    //   href: `/${params.storeId}/products`,
-    //   label: 'Products',
-    //   active: pathname === `/${params.storeId}/products`,
-    // },
-    // {
-    //   href: `/${params.storeId}/orders`,
-    //   label: 'Orders',
-    //   active: pathname === `/${params.storeId}/orders`,
-    // },
+    {
+      href: `/${params.storeId}/products`,
+      label: 'Products',
+      active: pathname === `/${params.storeId}/products`,
+    },
+    {
+      href: `/${params.storeId}/orders`,
+      label: 'Orders',
+      active: pathname === `/${params.storeId}/orders`,
+    },
     {
       href: `/${params.storeId}/settings`,
       label: 'Settings',
