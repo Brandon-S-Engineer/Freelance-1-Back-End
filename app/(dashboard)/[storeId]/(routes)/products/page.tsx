@@ -1,9 +1,16 @@
+// app/(dashboard)/[storeId]/(routes)/products/page.tsx
+
 import { format } from 'date-fns';
 
 import connectDB from '@/lib/mongodb';
 import Product from '@/models/Product';
-import { formatter } from '@/lib/utils';
 
+// ← Add these imports so Mongoose registers their schemas
+import Category from '@/models/Category';
+import Size from '@/models/Size';
+import Color from '@/models/Color';
+
+import { formatter } from '@/lib/utils';
 import { ProductClient } from './components/client';
 import { ProductColumn } from './components/columns';
 
