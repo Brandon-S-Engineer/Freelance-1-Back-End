@@ -17,7 +17,7 @@ import { ProductColumn } from './components/columns';
 const ProductsPage = async ({ params }: { params: { storeId: string } }) => {
   await connectDB();
 
-  const products = await Product.find({ storeId: params.storeId }).populate('categoryId', 'name').populate('sizeId', 'name').populate('colorId', 'value').sort({ createdAt: -1 }).lean<
+  const products = await Product.find({ storeId: params.storeId }).populate('categoryId', 'name').sort({ createdAt: -1 }).lean<
     {
       _id: any;
       name: string;
@@ -25,8 +25,6 @@ const ProductsPage = async ({ params }: { params: { storeId: string } }) => {
       isArchived: boolean;
       price: number;
       categoryId: { name: string };
-      sizeId: { name: string };
-      colorId: { value: string };
       createdAt: Date;
     }[]
   >();
@@ -38,8 +36,8 @@ const ProductsPage = async ({ params }: { params: { storeId: string } }) => {
     isArchived: item.isArchived,
     price: formatter.format(item.price),
     category: item.categoryId.name,
-    size: item.sizeId.name,
-    color: item.colorId.value,
+    size: '',
+    color: '',
     createdAt: format(new Date(item.createdAt), 'MMMM do, yyyy'),
   }));
 

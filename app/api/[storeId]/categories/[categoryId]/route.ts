@@ -21,7 +21,7 @@ export async function GET(_req: NextRequest, { params }: { params: { categoryId:
     return NextResponse.json(category);
   } catch (error) {
     console.error('[CATEGORY_GET]', error);
-    return new NextResponse('Internal error', { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 

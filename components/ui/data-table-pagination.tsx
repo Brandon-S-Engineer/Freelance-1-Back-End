@@ -2,12 +2,21 @@ import { Table } from '@tanstack/react-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 import { Button } from './button';
 import { ChevronLeftIcon, ChevronRightIcon, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { useEffect } from 'react';
 
 interface DataTablePaginationProps<TData> {
   table: Table<TData>;
 }
 
 export function DataTablePagination<TData>({ table }: DataTablePaginationProps<TData>) {
+  useEffect(() => {
+    const current = table.getState().pagination.pageSize;
+    if (current !== 50) {
+      table.setPageSize(50);
+    }
+    // We intentionally run this once to set an app-wide default
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <div className='flex items-center justify-between px-2 space-x-2 py-4'>
       <div className='flex-1 text-sm text-muted-foreground'>
@@ -25,7 +34,7 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
               <SelectValue placeholder={table.getState().pagination.pageSize} />
             </SelectTrigger>
             <SelectContent side='top'>
-              {[10, 20, 30, 40, 50].map((pageSize) => (
+              {[50, 10, 20, 30, 40].map((pageSize) => (
                 <SelectItem
                   key={pageSize}
                   value={`${pageSize}`}>

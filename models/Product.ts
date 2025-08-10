@@ -1,7 +1,53 @@
 // models/Product.ts
-import mongoose, { Schema, model, models, Types } from 'mongoose';
+import mongoose, { Schema, model, models, Types, Document } from 'mongoose';
 
-const ProductSchema = new Schema(
+// Shared TypeScript interfaces for clarity and reuse
+export interface Variant {
+  _id: string;
+  name: string;
+  price: number;
+  promoPrice: number | null;
+}
+
+export interface CategoryRef {
+  name: string;
+}
+
+export interface ProductType extends Document {
+  _id: string;
+  storeId: string;
+  categoryId: Types.ObjectId | CategoryRef;
+  name: string;
+  price: number;
+  promoPrice: number | null;
+  isFeatured: boolean;
+  isArchived: boolean;
+  variants: Variant[]; // always normalized to array
+  images: string[];
+  specPdfUrl?: string;
+  orderItems: Types.ObjectId[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Subschema for product variants
+const VariantSchema = new Schema<Variant>({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  price: {
+    type: Number,
+    required: true,
+  },
+  promoPrice: {
+    type: Number,
+    default: null,
+  },
+});
+
+const ProductSchema = new Schema<Partial<ProductType>>(
   {
     // Reference back to the Store
     storeId: {
@@ -29,6 +75,10 @@ const ProductSchema = new Schema(
       type: Number,
       required: true,
     },
+    promoPrice: {
+      type: Number,
+      default: null,
+    },
     isFeatured: {
       type: Boolean,
       default: false,
@@ -38,27 +88,25 @@ const ProductSchema = new Schema(
       default: false,
     },
 
-    // Variant references
-    sizeId: {
-      type: Types.ObjectId,
-      ref: 'Size',
-      required: true,
-      index: true,
-    },
-    colorId: {
-      type: Types.ObjectId,
-      ref: 'Color',
-      required: true,
-      index: true,
+    // Variants for different versions of the product
+    variants: {
+      type: [VariantSchema],
+      default: [],
     },
 
-    // Image URLs for this product
+    // Images URLs for this product
     images: [
       {
         type: String,
         required: true,
       },
     ],
+
+    // PDF technical sheet URL
+    specPdfUrl: {
+      type: String,
+      required: false,
+    },
 
     // OrderItem references (for any orders that include this product)
     orderItems: [
@@ -70,8 +118,15 @@ const ProductSchema = new Schema(
   },
   {
     timestamps: true, // adds createdAt & updatedAt
+    toJSON: {
+      transform(doc, ret) {
+        ret.id = ret._id; // optional convenience
+        delete ret.__v;
+      },
+    },
   }
 );
 
-const Product = models.Product || model('Product', ProductSchema);
+// Use generic to help TS inference on the model
+const Product = (models.Product as mongoose.Model<ProductType>) || model<ProductType>('Product', ProductSchema as any);
 export default Product;

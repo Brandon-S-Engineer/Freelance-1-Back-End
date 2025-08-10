@@ -13,12 +13,17 @@ interface LeanProduct {
   _id: string;
   name: string;
   price: number;
+  promoPrice: number | null; // ✅ base promo
   isFeatured: boolean;
   isArchived: boolean;
   categoryId: string;
-  sizeId: string;
-  colorId: string;
   images: string[];
+  specPdfUrl?: string;
+  variants: {
+    name: string;
+    price: number;
+    promoPrice: number | null; // ✅ per-variant promo
+  }[];
 }
 
 interface LeanCategory {
@@ -42,30 +47,39 @@ const ProductPage = async ({ params }: { params: { productId: string; storeId: s
   // 1. Load existing product if editing
   let product: LeanProduct | null = null;
   if (params.productId !== 'new' && isValidObjectId(params.productId)) {
-    const found = await Product.findById(params.productId).lean<{
-      _id: any;
-      name: string;
-      price: number;
-      isFeatured: boolean;
-      isArchived: boolean;
-      categoryId: any;
-      sizeId: any;
-      colorId: any;
-      images: string[];
-    } | null>();
+    const found = await Product.findById(params.productId)
+      .select('name price promoPrice isFeatured isArchived categoryId images specPdfUrl ' + 'variants.name variants.price variants.promoPrice')
+      .lean<{
+        _id: any;
+        name: string;
+        price: number;
+        promoPrice?: number | null;
+        isFeatured: boolean;
+        isArchived: boolean;
+        categoryId: any;
+        images: string[];
+        specPdfUrl?: string;
+        variants?: { name: string; price: number; promoPrice?: number | null }[];
+      } | null>();
 
     if (found) {
       product = {
         _id: found._id.toString(),
         name: found.name,
         price: found.price,
+        promoPrice: (found as any).promoPrice ?? null, // ✅ normalize base promo
         isFeatured: found.isFeatured,
         isArchived: found.isArchived,
         categoryId: found.categoryId.toString(),
-        sizeId: found.sizeId.toString(),
-        colorId: found.colorId.toString(),
         images: found.images,
+        specPdfUrl: found.specPdfUrl,
+        variants: (found.variants || []).map((v) => ({
+          name: v.name,
+          price: v.price,
+          promoPrice: (v as any).promoPrice ?? null, // ✅ normalize per-variant promo
+        })),
       };
+      console.log('[PAGE] initialData.promoPrice ->', product?.promoPrice);
     }
   }
 
@@ -95,8 +109,6 @@ const ProductPage = async ({ params }: { params: { productId: string; storeId: s
         <ProductForm
           initialData={product}
           categories={categories}
-          sizes={sizes}
-          colors={colors}
         />
       </div>
     </div>

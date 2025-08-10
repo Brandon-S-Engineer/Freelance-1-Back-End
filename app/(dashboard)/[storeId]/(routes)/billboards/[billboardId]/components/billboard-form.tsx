@@ -20,7 +20,7 @@ import ImageUpload from '@/components/ui/image-upload';
 
 // ✅ Zod schema for validation
 const formSchema = z.object({
-  label: z.string().min(3, { message: 'Store name is required, (min 3 characters).' }).max(25),
+  label: z.string().min(3, { message: 'Store name is required, (min 3 characters).' }).max(100),
   imageUrl: z.string().url(),
   // imageUrl: z.string().min(1), // Tutorial code - Not working
 });

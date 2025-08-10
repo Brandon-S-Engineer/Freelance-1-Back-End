@@ -9,53 +9,89 @@ import { isValidObjectId } from 'mongoose';
 export async function POST(req: NextRequest, { params }: { params: { storeId: string } }) {
   try {
     await connectDB();
-
     const { userId } = getAuth(req);
-    const { name, price, categoryId, colorId, sizeId, images, isFeatured, isArchived } = await req.json();
 
-    if (!userId) {
-      return new NextResponse('Unauthenticated', { status: 401 });
-    }
-    if (!name) {
-      return new NextResponse('Name is required', { status: 400 });
-    }
-    if (!images || !images.length) {
-      return new NextResponse('Images are required', { status: 400 });
-    }
+    const {
+      name,
+      price,
+      promoPrice, // ✅ optional base promo
+      categoryId,
+      variants,
+      specPdfUrl,
+      images,
+      isFeatured,
+      isArchived,
+    } = await req.json();
+
+    // 1) Auth & basic checks
+    if (!userId) return new NextResponse('Unauthenticated', { status: 401 });
+    if (!name) return new NextResponse('Name is required', { status: 400 });
+
     if (typeof price !== 'number' || price <= 0) {
-      return new NextResponse('Price is required', { status: 400 });
+      return new NextResponse('Valid price is required', { status: 400 });
     }
+
+    // ✅ Base promo validations (optional)
+    if (promoPrice != null) {
+      if (typeof promoPrice !== 'number' || promoPrice <= 0) {
+        return new NextResponse('Invalid promoPrice', { status: 400 });
+      }
+      if (promoPrice >= price) {
+        return new NextResponse('promoPrice must be less than price', { status: 400 });
+      }
+    }
+
     if (!categoryId || !isValidObjectId(categoryId)) {
-      return new NextResponse('Category ID is required', { status: 400 });
-    }
-    if (!sizeId || !isValidObjectId(sizeId)) {
-      return new NextResponse('Size ID is required', { status: 400 });
-    }
-    if (!colorId || !isValidObjectId(colorId)) {
-      return new NextResponse('Color ID is required', { status: 400 });
-    }
-    if (!params.storeId) {
-      return new NextResponse('Store ID is required', { status: 400 });
+      return new NextResponse('Valid category ID is required', { status: 400 });
     }
 
-    const storeByUser = await Store.findOne({
-      _id: params.storeId,
-      userId,
-    }).lean();
-    if (!storeByUser) {
-      return new NextResponse('Unauthorized', { status: 403 });
+    if (!Array.isArray(variants) || variants.length === 0) {
+      return new NextResponse('At least one variant is required', { status: 400 });
     }
 
+    // ✅ Variant validations (each with optional promo)
+    for (const v of variants) {
+      if (!v?.name || typeof v?.price !== 'number') {
+        return new NextResponse('Each variant needs a name and price', { status: 400 });
+      }
+      if (v.promoPrice != null) {
+        if (typeof v.promoPrice !== 'number' || v.promoPrice <= 0) {
+          return new NextResponse('Invalid variant promoPrice', { status: 400 });
+        }
+        if (v.promoPrice >= v.price) {
+          return new NextResponse('variant promoPrice must be less than variant price', { status: 400 });
+        }
+      }
+    }
+
+    if (!Array.isArray(images) || images.length === 0) {
+      return new NextResponse('At least one image is required', { status: 400 });
+    }
+
+    if (!params.storeId || !isValidObjectId(params.storeId)) {
+      return new NextResponse('Valid store ID is required', { status: 400 });
+    }
+
+    // 2) Ownership check
+    const storeByUser = await Store.findOne({ _id: params.storeId, userId }).lean();
+    if (!storeByUser) return new NextResponse('Unauthorized', { status: 403 });
+
+    // 3) Create
     const product = await Product.create({
       name,
       price,
+      promoPrice: promoPrice ?? null, // ✅ base promo if provided
       isFeatured: Boolean(isFeatured),
       isArchived: Boolean(isArchived),
       categoryId,
-      colorId,
-      sizeId,
+      variants: variants.map((v: any) => ({
+        name: v.name,
+        price: v.price,
+        promoPrice: v.promoPrice ?? null, // ✅ per-variant promo if provided
+      })),
+      specPdfUrl,
       storeId: params.storeId,
-      images: images.map((img: { url: string }) => img.url),
+      images: images.map((img: any) => (typeof img === 'string' ? img : img.url)),
     });
 
     return NextResponse.json(product);
@@ -66,33 +102,38 @@ export async function POST(req: NextRequest, { params }: { params: { storeId: st
 }
 
 /* ------------------------------- GET (list products) ------------------------------- */
+// /app/api/[storeId]/products/route.ts
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: NextRequest, { params }: { params: { storeId: string } }) {
   try {
     await connectDB();
 
     const { storeId } = params;
-    if (!storeId) {
-      return new NextResponse('Store ID is required', { status: 400 });
-    }
+    if (!storeId) return new NextResponse('Store ID is required', { status: 400 });
 
     const { searchParams } = new URL(req.url);
     const categoryId = searchParams.get('categoryId') || undefined;
-    const colorId = searchParams.get('colorId') || undefined;
-    const sizeId = searchParams.get('sizeId') || undefined;
     const isFeatured = searchParams.get('isFeatured');
 
-    const filter: any = {
-      storeId,
-      isArchived: false,
-    };
+    const filter: any = { storeId, isArchived: false };
     if (categoryId && isValidObjectId(categoryId)) filter.categoryId = categoryId;
-    if (colorId && isValidObjectId(colorId)) filter.colorId = colorId;
-    if (sizeId && isValidObjectId(sizeId)) filter.sizeId = sizeId;
     if (isFeatured !== null) filter.isFeatured = true;
 
-    const products = await Product.find(filter).populate('categoryId', 'name').populate('sizeId', 'name').populate('colorId', 'value').sort({ createdAt: -1 }).lean();
+    const products = await Product.find(filter)
+      .populate('categoryId', 'name')
+      .select('+variants +variants.promoPrice +promoPrice') // ✅
+      .sort({ createdAt: -1 })
+      .lean();
 
-    return NextResponse.json(products);
+    const formatted = products.map((p: any) => ({
+      ...p,
+      promoPrice: p.promoPrice ?? null, // ✅ base
+      variants: Array.isArray(p.variants) ? p.variants.map((v: any) => ({ ...v, promoPrice: v?.promoPrice ?? null })) : [],
+    }));
+
+    return NextResponse.json(formatted, { headers: { 'Cache-Control': 'no-store' } }); // ⛔️
   } catch (error) {
     console.error('[PRODUCTS_GET]', error);
     return new NextResponse('Internal Server Error', { status: 500 });
