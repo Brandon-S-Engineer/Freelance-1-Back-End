@@ -47,29 +47,53 @@ interface ProductFormProps {
 }
 
 /* --- Schema --- */
+// zod bits
 const money = z.coerce.number().nonnegative();
+const variantSchema = z.object({
+  name: z.string().min(1),
+  price: money.min(1),
+  promoPrice: money.min(1).nullable().optional(),
+});
 
 const formSchema = z
   .object({
     name: z.string().min(1),
     images: z.string().array(),
-    price: z.coerce.number().min(1),
+    price: money.min(1),
     promoPrice: money.min(1).nullable().optional(),
     categoryId: z.string().min(1),
     specPdfUrl: z.string().url().optional(),
     isFeatured: z.boolean().optional(),
     isArchived: z.boolean().optional(),
-    variants: z
-      .array(
-        z.object({
-          name: z.string().min(1),
-          price: z.coerce.number().min(1),
-          promoPrice: money.min(1).nullable().optional(),
-        })
-      )
-      .optional(),
+    variants: z.array(variantSchema).optional().default([]), // ✅ optional + default []
   })
-  .refine((d) => d.promoPrice == null || d.promoPrice < d.price, { path: ['promoPrice'], message: 'El precio "Promo" debe ser menor que el precio actual.' });
+  .refine((d) => d.promoPrice == null || d.promoPrice < d.price, {
+    path: ['promoPrice'],
+    message: 'El precio "Promo" debe ser menor que el precio actual.',
+  });
+
+// const money = z.coerce.number().nonnegative();
+// const formSchema = z
+//   .object({
+//     name: z.string().min(1),
+//     images: z.string().array(),
+//     price: z.coerce.number().min(1),
+//     promoPrice: money.min(1).nullable().optional(),
+//     categoryId: z.string().min(1),
+//     specPdfUrl: z.string().url().optional(),
+//     isFeatured: z.boolean().optional(),
+//     isArchived: z.boolean().optional(),
+//     variants: z
+//       .array(
+//         z.object({
+//           name: z.string().min(1),
+//           price: z.coerce.number().min(1),
+//           promoPrice: money.min(1).nullable().optional(),
+//         })
+//       )
+//       .optional(),
+//   })
+//   .refine((d) => d.promoPrice == null || d.promoPrice < d.price, { path: ['promoPrice'], message: 'El precio "Promo" debe ser menor que el precio actual.' });
 
 type ProductFormValues = z.infer<typeof formSchema>;
 
@@ -116,14 +140,20 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, categorie
         },
   });
 
-  const onSubmit = async (data: ProductFormValues) => {
+  const onSubmit = async (raw: ProductFormValues) => {
     try {
       setLoading(true);
+
+      const cleanedVariants = (raw.variants ?? []).filter((v) => v?.name?.trim() && (v?.price ?? 0) > 0).map((v) => ({ ...v, promoPrice: v.promoPrice ?? null }));
+
+      const payload = { ...raw, variants: cleanedVariants }; // ✅ can be []
+
       if (initialData) {
-        await axios.patch(`/api/${params.storeId}/products/${params.productId}`, data);
+        await axios.patch(`/api/${params.storeId}/products/${params.productId}`, payload);
       } else {
-        await axios.post(`/api/${params.storeId}/products`, data);
+        await axios.post(`/api/${params.storeId}/products`, payload);
       }
+
       router.push(`/${params.storeId}/products`);
       router.refresh();
       toast.success(toastMessage);
@@ -133,6 +163,24 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, categorie
       setLoading(false);
     }
   };
+
+  // const onSubmit = async (data: ProductFormValues) => {
+  //   try {
+  //     setLoading(true);
+  //     if (initialData) {
+  //       await axios.patch(`/api/${params.storeId}/products/${params.productId}`, data);
+  //     } else {
+  //       await axios.post(`/api/${params.storeId}/products`, data);
+  //     }
+  //     router.push(`/${params.storeId}/products`);
+  //     router.refresh();
+  //     toast.success(toastMessage);
+  //   } catch {
+  //     toast.error('Something went wrong.');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const onDelete = async () => {
     try {

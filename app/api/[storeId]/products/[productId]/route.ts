@@ -1,3 +1,5 @@
+// /app/api/products/[productId]/route.ts
+
 import connectDB from '@/lib/mongodb';
 import Product from '@/models/Product';
 import Store from '@/models/Store';
@@ -5,7 +7,6 @@ import { getAuth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { isValidObjectId } from 'mongoose';
 
-// /app/api/products/[productId]/route.ts
 export const dynamic = 'force-dynamic'; // ⛔️ evita cache en Next
 export const revalidate = 0;
 
@@ -41,6 +42,7 @@ export async function GET(_req: NextRequest, { params }: { params: { productId: 
   }
 }
 
+/* --------------------------- PATCH Product --------------------------- */
 export async function PATCH(req: NextRequest, { params }: { params: { storeId: string; productId: string } }) {
   try {
     await connectDB();
